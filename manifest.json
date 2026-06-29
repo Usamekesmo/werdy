@@ -1,13 +1,13 @@
-{
+z{
   "name": "ختمتي - تطبيق الختمة الجماعية",
   "short_name": "ختمتي",
   "description": "تطبيق متقدم لإدارة الختمات الجماعية للقرآن الكريم مع نظام حلقات متكامل",
-  "start_url": "/",
+  "start_url": "/werdy/index.html",
   "display": "standalone",
   "theme_color": "#1a4739",
   "background_color": "#ffffff",
   "orientation": "portrait",
-  "scope": "/",
+  "scope": "/werdy/",
   "lang": "ar",
   "dir": "rtl",
   "categories": ["education", "productivity", "lifestyle"],
