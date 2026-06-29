@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>ختمتي - تطبيق الختمة الجماعية المتقدم</title>
+    <link rel="stylesheet" href="style.css">
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icons/icon-192.png">
+    <meta name="theme-color" content="#1a4739">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="ختمتي">
+    <meta name="description" content="تطبيق الختمة الجماعية المتقدم - اقرأ القرآن مع حلقاتك وحقق أهدافك">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icons/icon-512.png">
+    
+    <!-- ===== المكتبات الخارجية ===== -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    
+    <!-- ===== Firebase ===== -->
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-firestore-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/11.0.2/firebase-messaging-compat.js"></script>
+</head>
+<body>
+
+<!-- ========== شاشة التحميل ========== -->
+<div id="loadingScreen" class="loading-screen active">
+    <div class="loading-spinner"></div>
+    <div class="loading-icon">📖</div>
+    <h2>ختمتي</h2>
+    <p>جاري التحميل...</p>
+</div>
+
+<!-- ========== شاشة المصادقة ========== -->
+<div id="authScreen" class="screen">
+    <div class="container auth-container">
+        <div class="logo">
+            <div class="logo-icon">📖</div>
+            <h1>ختمتي</h1>
+            <p class="subtitle">تطبيق الختمة الجماعية المتقدم</p>
+        </div>
+        
+        <div class="full-auth-form">
+            <div class="tabs" role="tablist">
+                <button class="tab-btn active" data-tab="login" role="tab" aria-selected="true">دخول</button>
+                <button class="tab-btn" data-tab="register" role="tab" aria-selected="false">تسجيل جديد</button>
+            </div>
+            
+            <form id="loginForm" class="auth-form active" novalidate>
+                <div class="form-group">
+                    <label for="loginUsername">اسم المستخدم أو البريد الإلكتروني</label>
+                    <input type="text" id="loginUsername" placeholder="أدخل اسم المستخدم أو البريد" required>
+                </div>
+                <div class="form-group">
+                    <label for="loginPassword">كلمة السر</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="loginPassword" placeholder="أدخل كلمة السر" required>
+                        <button type="button" class="toggle-password" aria-label="إظهار/إخفاء كلمة السر">👁️</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary btn-block" id="loginBtn">دخول</button>
+                <a href="#" id="forgotPasswordLink" class="forgot-link">نسيت كلمة السر؟</a>
+            </form>
+            
+            <form id="registerForm" class="auth-form" novalidate>
+                <div class="form-group">
+                    <label for="regName">اسم المستخدم (أحرف إنجليزية، 3-20 حرف)</label>
+                    <input type="text" id="regName" placeholder="اختر اسم مستخدم" required minlength="3">
+                    <div id="nameAvailability" class="name-availability"></div>
+                </div>
+                <div class="form-group">
+                    <label for="regDisplayName">الاسم المعروض (بالعربية)</label>
+                    <input type="text" id="regDisplayName" placeholder="الاسم الذي سيظهر للآخرين" required>
+                </div>
+                <div class="form-group">
+                    <label for="regEmail">البريد الإلكتروني</label>
+                    <input type="email" id="regEmail" placeholder="example@email.com" required>
+                </div>
+                <div class="form-group">
+                    <label for="regGender">الجنس</label>
+                    <select id="regGender" required>
+                        <option value="">اختر الجنس</option>
+                        <option value="male">👨 ذكر</option>
+                        <option value="female">👩 أنثى</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="regPassword">كلمة السر (6 أحرف على الأقل)</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="regPassword" placeholder="أدخل كلمة السر" required minlength="6">
+                        <button type="button" class="toggle-password" aria-label="إظهار/إخفاء كلمة السر">👁️</button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="regConfirmPassword">تأكيد كلمة السر</label>
+                    <div class="password-input-wrapper">
+                        <input type="password" id="regConfirmPassword" placeholder="أعد إدخال كلمة السر" required minlength="6">
+                        <button type="button" class="toggle-password" aria-label="إظهار/إخفاء كلمة السر">👁️</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn-primary btn-block" id="registerBtn">تسجيل جديد</button>
+            </form>
+            
+            <div class="divider">أو</div>
+            
+            <button id="googleFullBtn" class="btn-google btn-block">
+                <span class="btn-icon">🌐</span> دخول عبر Google
+            </button>
+            <button id="guestLoginBtn" class="btn-guest btn-block">
+                <span class="btn-icon">👤</span> دخول كضيف
+            </button>
+            
+            <div id="adminLoginSection" style="display:none; margin-top:15px; padding:15px; background:#f1f5f9; border-radius:15px;">
+                <p style="font-size:12px; color:#666; text-align:center;">🔒 قسم المدير العام</p>
+                <div class="form-group">
+                    <input type="email" id="adminEmailInput" placeholder="بريد المدير العام">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="adminPasswordInput" placeholder="كلمة سر المدير">
+                </div>
+                <button onclick="window.adminLogin()" class="btn-admin btn-block">👑 دخول كمدير عام</button>
+                <button onclick="window.toggleAdminSection()" style="width:100%; margin-top:5px; background:transparent; border:none; color:#666; cursor:pointer; font-size:12px;">إخفاء</button>
+            </div>
+            
+            <p style="text-align:center; margin-top:10px; font-size:12px;">
+                <a href="#" onclick="window.toggleAdminSection()" style="color:#8b5cf6; text-decoration:none;">🔑 دخول المدير العام</a>
+            </p>
+        </div>
+        <div id="authMessage" class="message" role="alert"></div>
+    </div>
+</div>
+
+<!-- ========== شاشة اختيار الحلقة ========== -->
+<div id="selectCircleScreen" class="screen">
+    <div class="container">
+        <div class="logo small">
+            <h1>📖 ختمتي</h1>
+            <p>اختر حلقتك</p>
+        </div>
+        
+        <div class="circle-actions-buttons">
+            <button id="refreshCirclesBtn" class="btn-icon-action">🔄 تحديث</button>
+            <button id="exitToAuthBtn" class="btn-icon-action danger">🚪 خروج</button>
+            <button id="darkModeToggleCircle" class="btn-icon-action">🌙</button>
+        </div>
+        
+        <div class="filter-gender-buttons" role="radiogroup">
+            <button id="filterAllCircles" class="filter-gender-btn active" role="radio" aria-checked="true">الكل</button>
+            <button id="filterFemaleCircles" class="filter-gender-btn" role="radio" aria-checked="false">👩 نسائية</button>
+            <button id="filterMaleCircles" class="filter-gender-btn" role="radio" aria-checked="false">👨 رجالية</button>
+        </div>
+        
+        <div class="search-circle-box">
+            <input type="text" id="searchCircleInput" placeholder="🔍 بحث باسم الحلقة" class="search-input">
+        </div>
+        
+        <div class="join-by-code-box">
+            <input type="text" id="circleCodeInput" placeholder="🔑 أدخل رمز الحلقة للانضمام" class="search-input">
+            <button id="joinByCodeDirectBtn" class="btn-join-code">📥 انضمام</button>
+        </div>
+        
+        <div class="invite-section">
+            <hr>
+            <p>أدخل رمز الحلقة للانضمام</p>
+        </div>
+        
+        <h3>الحلقات المتاحة</h3>
+        <div id="availableCirclesList" class="circles-list">
+            <div class="loading-skeleton">⏳ جاري التحميل...</div>
+        </div>
+        <div id="circleSelectionMessage" class="message" role="alert"></div>
+    </div>
+</div>
+
+<!-- ========== شاشة اختيار الجزء ========== -->
+<div id="selectJuzScreen" class="screen">
+    <div class="container">
+        <div class="logo small">
+            <h1>📖 ختمتي</h1>
+            <p>اختر جزءك</p>
+        </div>
+        
+        <button id="backToCirclesBtn" class="btn-back btn-block">⬅️ رجوع إلى الحلقات</button>
+        
+        <div class="juz-info">
+            <p>اختر جزءاً غير مأخوذ للانضمام إلى الحلقة</p>
+            <p class="juz-hint">📌 الأجزاء المظللة بالرمادي غير متاحة</p>
+        </div>
+        
+        <div id="juzGrid" class="juz-grid"></div>
+        <div id="juzSelectionMessage" class="message" role="alert"></div>
+    </div>
+</div>
+
+<!-- ========== الشاشة الرئيسية ========== -->
+<div id="mainScreen" class="screen">
+    <div class="main-container">
+        <header class="main-header">
+            <div class="user-info-header">
+                <div class="user-avatar" id="userAvatar">👤</div>
+                <div>
+                    <h2 id="userName">مستخدم</h2>
+                    <div id="userInfo" class="user-info-details"></div>
+                </div>
+                <button id="profileBtnMain" class="btn-edit-name" title="الملف الشخصي">⚙️</button>
+            </div>
+            <div class="header-buttons">
+                <button id="installPwaBtn" class="btn-install" style="display:none;">📲 تثبيت</button>
+                <button id="fontSizeBtn" class="btn-icon" title="حجم الخط">🔤</button>
+                <button id="darkModeToggleMain" class="btn-icon" title="الوضع الليلي">🌙</button>
+                <button id="adminPanelBtn" class="btn-admin-header" style="display:none;">👑</button>
+                <button id="logoutBtn" class="btn-logout" title="خروج">🚪</button>
+            </div>
+        </header>
+        
+        <div id="warningMessage" class="warning-message" style="display:none;" role="alert"></div>
+        
+        <div class="main-tabs" role="tablist">
+            <button class="main-tab-btn active" data-tab="dashboard" role="tab" aria-selected="true">📖 وردي</button>
+            <button class="main-tab-btn" data-tab="circle" role="tab" aria-selected="false">🔄 حلقتى</button>
+            <button class="main-tab-btn" data-tab="myJuz" role="tab" aria-selected="false">📚 أجزائي</button>
+            <button class="main-tab-btn" data-tab="achievements" role="tab" aria-selected="false">🏆 إنجازاتي</button>
+            <button class="main-tab-btn" data-tab="notifications" role="tab" aria-selected="false">🔔 إشعارات <span id="notificationBadge" class="badge-count"></span></button>
+        </div>
+
+        <div id="dashboardTab" class="main-tab-content active" role="tabpanel">
+            <div class="juz-card">
+                <h3>📖 وردك اليوم</h3>
+                <div class="juz-number" id="currentJuz">-</div>
+                <p id="juzStatus"></p>
+                
+                <div class="stats-mini">
+                    <div class="stat-mini">📊 الأجزاء: <strong id="totalPartsCount">0</strong></div>
+                    <div class="stat-mini">🏆 الختمات: <strong id="khatmasCount">0</strong></div>
+                    <div class="stat-mini">📅 الانضمام: <strong id="joinDateDisplay">-</strong></div>
+                </div>
+                
+                <div class="progress-chart-container">
+                    <canvas id="juzProgressChart" width="150" height="150"></canvas>
+                    <div class="progress-percent" id="juzProgressPercent">0%</div>
+                </div>
+                
+                <div class="progress-bar-container">
+                    <div class="progress-bar" id="khatmaProgress"></div>
+                    <span class="progress-label">التقدم نحو الختمة التالية</span>
+                </div>
+                
+                <div class="juz-actions">
+                    <button id="completeDailyJuzBtn" class="btn-complete-juz">✅ أنهيت وردي اليوم</button>
+                    <button id="viewJuzTextBtn" class="btn-complete-juz secondary">📖 عرض النص</button>
+                    <button id="listenJuzBtn" class="btn-complete-juz purple">🔊 استماع</button>
+                    <button id="shareJuzBtn" class="btn-complete-juz green" disabled style="opacity:0.5;cursor:not-allowed;">🔒 أنهِ وردك أولاً</button>
+                </div>
+            </div>
+            
+            <div id="juzTextViewer" class="juz-text-viewer" style="display:none;">
+                <div class="viewer-header">
+                    <h4>📖 نص الجزء <span id="viewerJuzNumber"></span></h4>
+                    <button id="closeTextViewer" class="btn-close-viewer">✖️</button>
+                </div>
+                <div class="viewer-controls">
+                    <button id="prevPageBtn" class="btn-page-nav">⬅️ السابق</button>
+                    <span id="currentPageDisplay">الصفحة 0</span>
+                    <button id="nextPageBtn" class="btn-page-nav">التالي ➡️</button>
+                </div>
+                <div id="juzTextContent" class="viewer-content"></div>
+            </div>
+
+            <div class="extra-readings-advanced">
+                <div class="extra-header">
+                    <h4>📚 الأجزاء الإضافية <span id="extraLimitBadge"></span></h4>
+                    <button id="addExtraJuzBtn" class="btn-add-extra">📦 أضف جزءاً</button>
+                </div>
+                <div id="extraProgressList" class="extra-progress-list"></div>
+            </div>
+        </div>
+
+        <div id="circleTab" class="main-tab-content" role="tabpanel">
+            <div id="circleInfo"></div>
+            <div id="circleActions"></div>
+            <div id="circleMembersList" class="members-list"></div>
+            <div id="circleReportContainer" class="report-container" style="display:none;"></div>
+            <div class="circle-admin-actions">
+                <button id="showReportBtn" class="btn-admin-action" style="display:none;">📊 التقرير</button>
+                <button id="manualDistributeBtn" class="btn-admin-action purple" style="display:none;">📦 توزيع أجزاء</button>
+            </div>
+        </div>
+        
+        <div id="myJuzTab" class="main-tab-content" role="tabpanel">
+            <h3>📚 أجزائي</h3>
+            <div id="myJuzList" class="my-juz-list"></div>
+        </div>
+
+        <div id="achievementsTab" class="main-tab-content" role="tabpanel">
+            <h3>🏆 إنجازاتي</h3>
+            <div id="achievementsList" class="achievements-grid"></div>
+        </div>
+
+        <div id="notificationsTab" class="main-tab-content" role="tabpanel">
+            <div class="notifications-header">
+                <h3>🔔 إشعاراتي</h3>
+                <div>
+                    <button id="markAllNotificationsRead" class="btn-small primary">تحديد الكل كمقروء</button>
+                    <button id="deleteAllReadNotifications" class="btn-small danger" style="margin-right:5px;">🗑️ حذف المقروء</button>
+                </div>
+            </div>
+            <div id="notificationsList" class="notifications-list"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== شاشة المدير العام ========== -->
+<div id="adminScreen" class="screen admin-screen">
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>👑 لوحة تحكم المدير العام</h1>
+            <div>
+                <button id="backToUserBtn" class="btn-back">📱 العودة</button>
+                <button id="adminLogoutBtn" class="btn-logout">🚪 خروج</button>
+                <button id="darkModeToggleAdmin" class="btn-icon">🌙</button>
+            </div>
+        </div>
+        
+        <div class="admin-tabs-mobile">
+            <select id="adminTabSelect">
+                <option value="circles">🔄 الحلقات</option>
+                <option value="users">👥 المستخدمين</option>
+                <option value="supervisors">👑 المشرفين</option>
+                <option value="extraPool">🗃️ المخزون العام</option>
+                <option value="reports">📈 التقارير</option>
+                <option value="notifications">🔔 الإشعارات</option>
+                <option value="settings">⚙️ الإعدادات</option>
+                <option value="shareMessage">📨 رسالة المشاركة</option>
+            </select>
+        </div>
+        
+        <div class="desktop-tabs">
+            <button class="admin-tab-btn active" data-admin-tab="circles">🔄 الحلقات</button>
+            <button class="admin-tab-btn" data-admin-tab="users">👥 المستخدمين</button>
+            <button class="admin-tab-btn" data-admin-tab="supervisors">👑 المشرفين</button>
+            <button class="admin-tab-btn" data-admin-tab="extraPool">🗃️ المخزون العام</button>
+            <button class="admin-tab-btn" data-admin-tab="reports">📈 التقارير</button>
+            <button class="admin-tab-btn" data-admin-tab="notifications">🔔 الإشعارات</button>
+            <button class="admin-tab-btn" data-admin-tab="settings">⚙️ الإعدادات</button>
+            <button class="admin-tab-btn" data-admin-tab="shareMessage">📨 رسالة المشاركة</button>
+        </div>
+        
+        <div id="adminCirclesTab" class="admin-tab-content active">
+            <div class="admin-actions">
+                <button id="createCircleBtn" class="btn-admin-action">➕ إنشاء حلقة</button>
+                <button onclick="window.exportCirclesToExcel()" class="btn-admin-action secondary">📊 تصدير Excel</button>
+            </div>
+            <input type="text" id="searchCircle" placeholder="🔍 بحث عن حلقة" class="search-input">
+            <div id="circlesList" class="admin-list"></div>
+        </div>
+        
+        <div id="adminUsersTab" class="admin-tab-content">
+            <div class="admin-filters">
+                <input type="text" id="searchUser" placeholder="🔍 بحث">
+                <select id="filterCircle"></select>
+                <select id="filterGender"><option value="all">الكل</option><option value="male">👨 رجال</option><option value="female">👩 نساء</option></select>
+            </div>
+            <div class="admin-actions" style="margin-top:10px; flex-wrap:wrap;">
+                <button onclick="window.exportUsersFullCSV()" class="btn-admin-action" style="background:#0ea5e9;">📊 تصدير كامل</button>
+                <button onclick="window.exportActiveUsersToWhatsApp()" class="btn-admin-action" style="background:#25D366;">📱 النشطاء واتساب</button>
+                <button onclick="window.exportInactiveUsersToWhatsApp()" class="btn-admin-action" style="background:#ef4444;">📱 الغائبين واتساب</button>
+            </div>
+            <div id="usersList" class="admin-list"></div>
+        </div>
+        
+        <div id="adminSupervisorsTab" class="admin-tab-content">
+            <h3>👑 إدارة مشرفي الحلقات</h3>
+            <div class="admin-actions" style="margin-bottom:15px;">
+                <button onclick="window.showAssignSupervisorModal()" class="btn-admin-action" style="background:#8b5cf6;">➕ تعيين مشرف جديد</button>
+            </div>
+            <div id="supervisorsList" class="admin-list"></div>
+        </div>
+        
+        <div id="adminExtraPoolTab" class="admin-tab-content">
+            <div class="admin-actions"><button id="refillExtraPoolBtn" class="btn-admin-action">🔄 تجديد المخزون (30 جزءاً)</button></div>
+            <div class="extra-pool-stats">
+                <div class="stat-card"><span>📦 الأجزاء المتاحة</span><strong id="availableExtraJuzCount">0</strong></div>
+                <div class="stat-card"><span>✅ الأجزاء المأخوذة</span><strong id="takenExtraJuzCount">0</strong></div>
+                <div class="stat-card"><span>📅 آخر تجديد</span><strong id="lastRefillDate">-</strong></div>
+            </div>
+            <h4>📋 تفاصيل الأجزاء المأخوذة</h4>
+            <div id="takenExtraJuzList" class="admin-list"></div>
+        </div>
+        
+        <div id="adminReportsTab" class="admin-tab-content">
+            <div class="admin-actions">
+                <button onclick="window.generateFullReport()" class="btn-admin-action">📊 تقرير كامل</button>
+                <button onclick="window.downloadReportAsPDF()" class="btn-admin-action secondary">📄 PDF</button>
+                <button onclick="window.exportReportToExcel()" class="btn-admin-action" style="background:#0ea5e9;">📊 Excel</button>
+                <button onclick="window.exportReportAsImage()" class="btn-admin-action" style="background:#f59e0b;">🖼️ صورة</button>
+            </div>
+            <div id="reportContent" class="report-content"></div>
+        </div>
+        
+        <!-- ===== تبويب الإشعارات للمدير العام ===== -->
+        <div id="adminNotificationsTab" class="admin-tab-content">
+            <div class="send-notification">
+                <h4>📨 إرسال إشعار (المدير العام)</h4>
+                <div class="form-group">
+                    <label for="notificationRecipient">إلى:</label>
+                    <select id="notificationRecipient">
+                        <option value="all">جميع المستخدمين</option>
+                        <option value="supervisors">المشرفين فقط</option>
+                        <option value="admins">مدراء الحلقات فقط</option>
+                        <option value="members">الأعضاء فقط</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="notificationTitle" placeholder="العنوان">
+                </div>
+                <div class="form-group">
+                    <textarea id="notificationMessage" placeholder="النص" rows="3"></textarea>
+                </div>
+                <button onclick="window.sendAdminNotification()" class="btn-admin-action">📨 إرسال</button>
+                <div id="adminNotificationResult" class="message" style="margin-top:10px;"></div>
+            </div>
+            <div style="display:flex; gap:10px; margin:15px 0; flex-wrap:wrap;">
+                <button onclick="window.loadAdminNotifications()" class="btn-admin-action secondary">🔄 تحديث الإشعارات</button>
+                <button onclick="window.clearAllAdminNotifications()" class="btn-admin-action danger">🗑️ مسح الكل</button>
+            </div>
+            <div id="adminNotificationsList" class="admin-list" style="margin-top:10px;"></div>
+        </div>
+        
+        <div id="adminSettingsTab" class="admin-tab-content">
+            <h3>⚙️ إعدادات التطبيق</h3>
+            <div class="settings-section">
+                <div class="setting-item">
+                    <label for="maxCircleMembers">👥 الحد الأقصى للأعضاء في الحلقة</label>
+                    <input type="number" id="maxCircleMembers" min="5" max="100" value="30">
+                    <button onclick="window.updateSetting('maxCircleMembers')" class="btn-setting">حفظ</button>
+                    <small class="setting-note">العدد الحالي: <span id="currentMaxCircleMembers">30</span></small>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="maxExtraPerDay">📚 الحد الأقصى للأجزاء الإضافية يومياً</label>
+                    <input type="number" id="maxExtraPerDay" min="1" max="10" value="1">
+                    <button onclick="window.updateSetting('maxExtraPerDay')" class="btn-setting">حفظ</button>
+                    <small class="setting-note">العدد الحالي: <span id="currentMaxExtraPerDay">1</span></small>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="maxAbsenceDays">⚠️ أيام الغياب قبل التجميد</label>
+                    <input type="number" id="maxAbsenceDays" min="1" max="10" value="3">
+                    <button onclick="window.updateSetting('maxAbsenceDays')" class="btn-setting">حفظ</button>
+                    <small class="setting-note">العدد الحالي: <span id="currentMaxAbsenceDays">3</span></small>
+                </div>
+                
+                <div class="setting-item">
+                    <label for="reminderHour">🔔 وقت التذكير اليومي (بصيغة 24 ساعة)</label>
+                    <input type="number" id="reminderHour" min="0" max="23" value="20">
+                    <button onclick="window.updateReminderTime()" class="btn-setting">حفظ</button>
+                    <small class="setting-note">الوقت الحالي: <span id="currentReminderHour">20:00</span></small>
+                </div>
+                
+                <hr style="margin: 30px 0;">
+                
+                <div class="setting-item">
+                    <h4>👑 إعدادات المدير العام</h4>
+                    <p style="font-size:12px; color:#666;">هنا يمكنك تغيير بريد وكلمة سر المدير العام</p>
+                    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                        <input type="email" id="newAdminEmail" placeholder="البريد الجديد للمدير">
+                        <input type="password" id="newAdminPassword" placeholder="كلمة السر الجديدة">
+                        <button onclick="window.changeAdminCredentials()" class="btn-admin-action" style="background:#8b5cf6;">🔄 تغيير المدير العام</button>
+                    </div>
+                    <div id="adminChangeMessage" class="message" style="margin-top:10px;"></div>
+                </div>
+                
+                <hr style="margin: 30px 0;">
+                
+                <div class="setting-item">
+                    <h4>🗑️ إدارة البيانات</h4>
+                    <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                        <button onclick="window.confirmClearAllData()" class="btn-admin-action" style="background:#dc2626;">⚠️ مسح جميع البيانات</button>
+                        <button onclick="window.resetAllSettings()" class="btn-admin-action secondary">↩️ إعادة ضبط الإعدادات</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="adminShareMessageTab" class="admin-tab-content">
+            <h3>📨 رسالة المشاركة</h3>
+            <div class="send-notification">
+                <h4>✏️ نص رسالة المشاركة</h4>
+                <p style="font-size:12px; color:#666; margin-bottom:10px;">هذا النص سيظهر عند مشاركة المستخدم لقراءة الجزء</p>
+                <textarea id="shareMessageText" rows="5"></textarea>
+                <button onclick="window.saveShareMessage()" class="btn-admin-action" style="margin-top:10px;">💾 حفظ الرسالة</button>
+                <div id="shareMessageStatus" class="message"></div>
+            </div>
+            <div style="margin-top:20px; padding:15px; background:#f8fafc; border-radius:15px;">
+                <h4>📱 معاينة الرسالة</h4>
+                <div id="shareMessagePreview" style="background:white; padding:15px; border-radius:10px; border:1px solid #e9ecef; direction:ltr; text-align:left;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== شاشة مشرف الحلقات (مع تبويب إشعارات) ========== -->
+<div id="supervisorScreen" class="screen supervisor-screen">
+    <div class="admin-container">
+        <div class="admin-header">
+            <h1>📊 لوحة مشرف الحلقات</h1>
+            <div>
+                <button id="supervisorLogoutBtn" class="btn-logout">🚪 خروج</button>
+                <button id="darkModeToggleSupervisor" class="btn-icon">🌙</button>
+            </div>
+        </div>
+        
+        <!-- تبويبات المشرف -->
+        <div class="admin-tabs-mobile">
+            <select id="supervisorTabSelect">
+                <option value="dashboard">📊 لوحة التحكم</option>
+                <option value="notifications">🔔 الإشعارات</option>
+            </select>
+        </div>
+        
+        <div class="desktop-tabs">
+            <button class="admin-tab-btn active" data-supervisor-tab="dashboard">📊 لوحة التحكم</button>
+            <button class="admin-tab-btn" data-supervisor-tab="notifications">🔔 الإشعارات</button>
+        </div>
+        
+        <!-- تبويب لوحة التحكم -->
+        <div id="supervisorDashboardTab" class="admin-tab-content active">
+            <div id="supervisorDashboardContent" class="supervisor-dashboard">
+                <div style="text-align:center; padding:40px;">جاري التحميل...</div>
+            </div>
+        </div>
+        
+        <!-- ===== تبويب الإشعارات للمشرف ===== -->
+        <div id="supervisorNotificationsTab" class="admin-tab-content">
+            <div class="send-notification">
+                <h4>📨 إرسال إشعار (المشرف)</h4>
+                <p style="font-size:13px; color:#6c757d; margin-bottom:15px;">يمكنك إرسال إشعارات للمدراء أو الأعضاء</p>
+                
+                <div class="form-group">
+                    <label for="supervisorNotificationRecipient">إلى:</label>
+                    <select id="supervisorNotificationRecipient">
+                        <option value="admins">👑 المدراء فقط</option>
+                        <option value="members">👥 الأعضاء فقط</option>
+                        <option value="all">📢 الكل (المدراء + الأعضاء)</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="supervisorNotificationCircle">🔄 الحلقة (اختر حلقة):</label>
+                    <select id="supervisorNotificationCircle">
+                        <option value="all">جميع الحلقات</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <input type="text" id="supervisorNotificationTitle" placeholder="العنوان">
+                </div>
+                <div class="form-group">
+                    <textarea id="supervisorNotificationMessage" placeholder="النص" rows="3"></textarea>
+                </div>
+                <button onclick="window.sendSupervisorNotification()" class="btn-admin-action" style="background:#8b5cf6;">📨 إرسال إشعار</button>
+                <div id="supervisorNotificationResult" class="message" style="margin-top:10px;"></div>
+            </div>
+            
+            <div style="display:flex; gap:10px; margin:15px 0; flex-wrap:wrap;">
+                <button onclick="window.loadSupervisorNotifications()" class="btn-admin-action secondary">🔄 تحديث الإشعارات</button>
+            </div>
+            <div id="supervisorNotificationsList" class="admin-list" style="margin-top:10px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- ========== المودالات ========== -->
+
+<!-- مودال إدارة الحلقة -->
+<div id="circleManagementModal" class="modal">
+    <div class="modal-content" style="max-width:550px; max-height:90vh; overflow-y:auto;">
+        <span class="close-modal" onclick="document.getElementById('circleManagementModal').style.display='none'">&times;</span>
+        <h3>⚙️ إدارة الحلقة</h3>
+        
+        <div class="management-section">
+            <h4>🔑 رمز الحلقة</h4>
+            <div style="display:flex; gap:10px; margin-bottom:15px; flex-wrap:wrap;">
+                <input type="text" id="circleInviteCodeDisplay" readonly style="flex:1; padding:10px; border-radius:10px; border:1px solid #ddd; background:#f1f5f9; min-width:100px;">
+                <button onclick="window.copyInviteCode()" class="btn-admin-action" style="background:#3b82f6; padding:8px 16px;">📋 نسخ</button>
+                <button onclick="window.regenerateInviteCode()" class="btn-admin-action" style="background:#f59e0b; padding:8px 16px;">🔄 تغيير</button>
+            </div>
+        </div>
+        
+        <div class="management-section">
+            <h4>👥 أعضاء الحلقة</h4>
+            <div id="circleMembersManagementList" style="max-height:300px; overflow-y:auto;"></div>
+        </div>
+        
+        <div class="management-section">
+            <h4>📨 إرسال رسالة للأعضاء (المدير)</h4>
+            <select id="messageRecipientType" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:10px;">
+                <option value="all">جميع الأعضاء</option>
+                <option value="active">النشطاء فقط (قرأوا اليوم)</option>
+                <option value="inactive">الغائبين (لم يقرأوا اليوم)</option>
+                <option value="specific">عضو محدد</option>
+            </select>
+            <div id="specificMemberSelect" style="display:none; margin-bottom:10px;">
+                <select id="specificMemberList" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;"></select>
+            </div>
+            <div class="form-group">
+                <input type="text" id="messageSubject" placeholder="عنوان الرسالة">
+            </div>
+            <div class="form-group">
+                <textarea id="messageContent" placeholder="نص الرسالة" rows="3"></textarea>
+            </div>
+            <button onclick="window.sendCircleAdminMessage()" class="btn-admin-action" style="background:#1a4739; width:100%; padding:12px;">📱 إرسال</button>
+            <div id="messageResult" class="message" style="margin-top:10px;"></div>
+        </div>
+    </div>
+</div>
+
+<!-- مودال تعيين مشرف -->
+<div id="assignSupervisorModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('assignSupervisorModal').style.display='none'">&times;</span>
+        <h3>👑 تعيين مشرف حلقات</h3>
+        <p style="font-size:14px; color:#666; margin-bottom:15px;">اختر مستخدم وحلقات لتعيينه مشرفاً عليها</p>
+        
+        <div class="form-group">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">👤 المستخدم</label>
+            <select id="supervisorUserSelect" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd; margin-bottom:15px;"></select>
+        </div>
+        
+        <div class="form-group">
+            <label style="font-weight:bold; display:block; margin-bottom:5px;">🔄 الحلقات المكلف بها</label>
+            <div id="supervisorCirclesCheckboxes" style="max-height:200px; overflow-y:auto; border:1px solid #ddd; border-radius:10px; padding:10px; margin-bottom:15px;"></div>
+        </div>
+        
+        <button onclick="window.confirmAssignSupervisor()" class="btn-admin-action" style="background:#8b5cf6; width:100%;">✅ تعيين مشرف</button>
+        <div id="assignSupervisorMessage" class="message" style="margin-top:10px;"></div>
+    </div>
+</div>
+
+<!-- مودال الأجزاء الإضافية -->
+<div id="extraJuzModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('extraJuzModal').style.display='none'">&times;</span>
+        <h3>📦 اختر جزءاً إضافياً من المخزون العام</h3>
+        <p id="availableExtraCountMsg"></p>
+        <div class="juz-grid" id="extraJuzGrid"></div>
+        <div id="extraJuzModalMessage" class="message"></div>
+    </div>
+</div>
+
+<!-- مودال الملف الشخصي -->
+<div id="profileModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('profileModal').style.display='none'">&times;</span>
+        <h3>⚙️ الملف الشخصي</h3>
+        
+        <div class="form-group">
+            <label for="profileDisplayName">الاسم المعروض (بالعربية)</label>
+            <input type="text" id="profileDisplayName" placeholder="الاسم الذي سيظهر للآخرين">
+        </div>
+        <div class="form-group">
+            <label for="profileUsername">اسم المستخدم (أحرف إنجليزية)</label>
+            <input type="text" id="profileUsername" placeholder="اسم المستخدم للدخول">
+            <div id="profileNameAvailability" class="name-availability"></div>
+        </div>
+        <div class="form-group">
+            <label for="profileEmail">البريد الإلكتروني</label>
+            <input type="email" id="profileEmail" placeholder="example@email.com" disabled>
+        </div>
+        <div class="form-group">
+            <label for="profileGender">الجنس</label>
+            <select id="profileGender">
+                <option value="male">👨 ذكر</option>
+                <option value="female">👩 أنثى</option>
+            </select>
+        </div>
+        <hr>
+        <div class="form-group">
+            <label for="profileNewPassword">كلمة السر الجديدة (اترك فارغاً إذا لا تريد التغيير)</label>
+            <div class="password-input-wrapper">
+                <input type="password" id="profileNewPassword" placeholder="كلمة سر جديدة">
+                <button type="button" class="toggle-password" aria-label="إظهار/إخفاء كلمة السر">👁️</button>
+            </div>
+        </div>
+        <div class="form-group">
+            <label for="profileConfirmPassword">تأكيد كلمة السر الجديدة</label>
+            <div class="password-input-wrapper">
+                <input type="password" id="profileConfirmPassword" placeholder="أعد إدخال كلمة السر">
+                <button type="button" class="toggle-password" aria-label="إظهار/إخفاء كلمة السر">👁️</button>
+            </div>
+        </div>
+        
+        <button id="saveProfileBtn" class="btn-primary btn-block">💾 حفظ التغييرات</button>
+        <div id="profileMessage" class="message" style="margin-top:10px;"></div>
+    </div>
+</div>
+
+<!-- مودال الاستماع -->
+<div id="audioPlayerModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('audioPlayerModal').style.display='none'">&times;</span>
+        <h3>🔊 استماع للجزء <span id="audioJuzNumber"></span></h3>
+        <div id="audioPlayerContainer" style="margin:20px 0;">
+            <audio id="quranAudio" controls style="width:100%; border-radius:15px; height:50px;">
+                <source id="audioSource" src="" type="audio/mpeg">
+                متصفحك لا يدعم تشغيل الصوت
+            </audio>
+        </div>
+        <div id="audioStatus" style="text-align:center; color:#666; font-size:14px; margin:10px 0;"></div>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button onclick="window.stopAudioPlayback()" class="btn-admin-action" style="background:#ef4444; flex:1; padding:12px; font-size:15px;">⏹️ إيقاف</button>
+            <button onclick="document.getElementById('audioPlayerModal').style.display='none'" class="btn-admin-action" style="background:#6c757d; flex:1; padding:12px; font-size:15px;">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<!-- مودال المشاركة -->
+<div id="shareModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('shareModal').style.display='none'">&times;</span>
+        <h3>📱 مشاركة</h3>
+        <p id="shareMessageDisplay" style="background:#f8fafc; padding:15px; border-radius:10px; margin:15px 0; font-size:14px; line-height:1.8;"></p>
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button onclick="window.shareToWhatsApp()" class="btn-share" style="background:#25D366;">📱 واتساب</button>
+            <button onclick="window.shareToTelegram()" class="btn-share" style="background:#0088cc;">✈️ تيليجرام</button>
+            <button onclick="window.shareToTwitter()" class="btn-share" style="background:#1DA1F2;">🐦 تويتر</button>
+            <button onclick="window.copyShareText()" class="btn-share" style="background:#6c757d;">📋 نسخ</button>
+        </div>
+        <button onclick="document.getElementById('shareModal').style.display='none'" class="btn-admin-action" style="width:100%; margin-top:10px;">إغلاق</button>
+    </div>
+</div>
+
+<!-- مودال نسيت كلمة السر -->
+<div id="resetModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('resetModal').style.display='none'">&times;</span>
+        <h3>🔐 إعادة تعيين كلمة السر</h3>
+        <div class="form-group">
+            <input type="email" id="resetEmail" placeholder="بريدك الإلكتروني">
+        </div>
+        <button id="sendResetBtn" class="btn-primary btn-block">📧 إرسال الرابط</button>
+        <div id="resetMessage" class="message"></div>
+    </div>
+</div>
+
+<!-- مودال حجم الخط -->
+<div id="fontSizeModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('fontSizeModal').style.display='none'">&times;</span>
+        <h3>🔤 حجم الخط</h3>
+        <div class="font-size-options">
+            <button data-size="small" class="btn-size">صغير</button>
+            <button data-size="medium" class="btn-size active">متوسط</button>
+            <button data-size="large" class="btn-size">كبير</button>
+        </div>
+    </div>
+</div>
+
+<!-- مودال تفعيل الإشعارات -->
+<div id="notificationPermissionModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('notificationPermissionModal').style.display='none'">&times;</span>
+        <h3>🔔 تفعيل التنبيهات</h3>
+        <p>هل تريد تلقي تذكير يومي بالورد؟</p>
+        <button id="enableNotificationsBtn" class="btn-primary btn-block">نعم، فعّل</button>
+        <button id="dismissNotificationsBtn" class="btn-secondary btn-block" style="margin-top:10px;">ليس الآن</button>
+    </div>
+</div>
+
+<!-- مودال توزيع الأجزاء يدوياً -->
+<div id="manualDistributionModal" class="modal">
+    <div class="modal-content" style="max-width:600px; max-height:90vh; overflow-y:auto;">
+        <span class="close-modal" id="closeDistributionModal" onclick="document.getElementById('manualDistributionModal').style.display='none'">&times;</span>
+        <h3>📦 توزيع الأجزاء يدوياً</h3>
+        <p style="font-size:14px; color:#666; margin-bottom:15px;">اختر الأعضاء والجزء المراد توزيعه</p>
+        
+        <div style="margin-bottom:15px;">
+            <h4>👥 اختر الأعضاء:</h4>
+            <div id="distributionMembersList" style="max-height:200px; overflow-y:auto; border:1px solid #ddd; border-radius:10px; padding:10px;"></div>
+        </div>
+        
+        <div style="margin-bottom:15px;">
+            <h4>📖 اختر الجزء:</h4>
+            <div id="distributionJuzGrid" class="juz-grid" style="max-height:200px; overflow-y:auto;"></div>
+        </div>
+        
+        <div style="margin-bottom:15px;">
+            <label style="display:flex; align-items:center; gap:10px; cursor:pointer;">
+                <input type="checkbox" id="distributionAsExtra">
+                <span>توزيع كورد إضافي (من المخزون)</span>
+            </label>
+        </div>
+        
+        <button id="executeDistributionBtn" class="btn-admin-action" style="width:100%; background:#1a4739;">📤 توزيع الآن</button>
+        <div id="distributionMessage" class="message"></div>
+    </div>
+</div>
+
+<!-- مودال إدارة المدراء للمدير العام -->
+<div id="adminCircleModal" class="modal" style="display:none; align-items:center; justify-content:center;">
+    <div class="modal-content" style="max-width:550px; padding:0; background:transparent; box-shadow:none;">
+        <div style="background:white; border-radius:20px; padding:25px;">
+            <span class="close-modal" onclick="document.getElementById('adminCircleModal').style.display='none'">&times;</span>
+            <h3 id="adminCircleModalTitle">👑 إدارة مدير الحلقة</h3>
+            <hr>
+            <div style="margin:15px 0;">
+                <h4>المدير الحالي:</h4>
+                <p id="adminCircleCurrentAdmin" style="background:#dcfce7; padding:10px; border-radius:10px;">جاري التحميل...</p>
+            </div>
+            <div style="margin:15px 0;">
+                <h4>اختر مديراً جديداً:</h4>
+                <select id="adminCircleMemberSelect" style="width:100%; padding:10px; border-radius:10px; border:1px solid #ddd;">
+                    <option value="">-- اختر عضواً --</option>
+                </select>
+                <button onclick="window.assignAdminFromAdminPanel()" class="btn-admin-action" style="background:#8b5cf6; width:100%; margin-top:10px;">👑 تعيين كمدير</button>
+            </div>
+            <div style="margin:15px 0;">
+                <button onclick="window.removeAdminFromAdminPanel()" class="btn-admin-action" style="background:#ef4444; width:100%;">🗑️ إزالة المدير الحالي</button>
+            </div>
+            <button onclick="document.getElementById('adminCircleModal').style.display='none'" class="btn-admin-action" style="background:#6c757d; width:100%; margin-top:10px;">إغلاق</button>
+        </div>
+    </div>
+</div>
+
+<!-- مودال تغيير رمز الحلقة للمدير العام -->
+<div id="changeCircleCodeModal" class="modal">
+    <div class="modal-content">
+        <span class="close-modal" onclick="document.getElementById('changeCircleCodeModal').style.display='none'">&times;</span>
+        <h3>🔑 تغيير رمز الحلقة</h3>
+        <p style="font-size:14px; color:#666; margin-bottom:15px;">يمكنك إدخال رمز جديد يدوياً أو توليد رمز تلقائي</p>
+        
+        <div class="form-group">
+            <label for="newCircleCode">الرمز الجديد</label>
+            <input type="text" id="newCircleCode" placeholder="أدخل الرمز الجديد (6 أحرف)" maxlength="6" style="text-transform:uppercase;">
+        </div>
+        
+        <div style="display:flex; gap:10px; flex-wrap:wrap;">
+            <button onclick="window.generateCircleCode()" class="btn-admin-action" style="background:#3b82f6; flex:1;">🔄 توليد تلقائي</button>
+            <button onclick="window.saveCircleCode()" class="btn-admin-action" style="background:#1a4739; flex:1;">💾 حفظ</button>
+        </div>
+        <div id="circleCodeMessage" class="message" style="margin-top:10px;"></div>
+    </div>
+</div>
+
+<!-- ===== تحميل script.js ===== -->
+<script src="script.js"></script>
+
+<!-- ===== كود الطوارئ لإخفاء شاشة التحميل ===== -->
+<script>
+    // إخفاء شاشة التحميل بعد 5 ثواني (حتى لو فشل التطبيق)
+    setTimeout(function() {
+        var loading = document.getElementById('loadingScreen');
+        if (loading && loading.classList.contains('active')) {
+            loading.classList.remove('active');
+            console.log('⚠️ تم إخفاء شاشة التحميل (طوارئ)');
+            if (!document.querySelector('.screen.active')) {
+                var authScreen = document.getElementById('authScreen');
+                if (authScreen) {
+                    authScreen.classList.add('active');
+                }
+            }
+        }
+    }, 5000);
+    
+    // معالجة أخطاء Firebase
+    window.addEventListener('error', function(e) {
+        console.log('⚠️ خطأ تم اكتشافه:', e.message);
+        var loading = document.getElementById('loadingScreen');
+        if (loading && loading.classList.contains('active')) {
+            loading.classList.remove('active');
+            var authScreen = document.getElementById('authScreen');
+            if (authScreen) {
+                authScreen.classList.add('active');
+            }
+        }
+    });
+    
+    // معالجة رفض Promise غير المعالجة
+    window.addEventListener('unhandledrejection', function(e) {
+        console.log('⚠️ رفض Promise غير معالج:', e.reason);
+        var loading = document.getElementById('loadingScreen');
+        if (loading && loading.classList.contains('active')) {
+            loading.classList.remove('active');
+            var authScreen = document.getElementById('authScreen');
+            if (authScreen) {
+                authScreen.classList.add('active');
+            }
+        }
+    });
+</script>
+
+</body>
+</html>
