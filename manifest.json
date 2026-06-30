@@ -1,0 +1,118 @@
+{
+  "name": "ختمتي - تطبيق الختمة الجماعية",
+  "short_name": "ختمتي",
+  "description": "تطبيق متقدم لإدارة الختمات الجماعية للقرآن الكريم مع نظام حلقات متكامل",
+  "start_url": "/werdy/index.html",
+  "display": "standalone",
+  "theme_color": "#1a4739",
+  "background_color": "#ffffff",
+  "orientation": "portrait",
+  "scope": "/werdy/",
+  "lang": "ar",
+  "dir": "rtl",
+  "categories": ["education", "productivity", "lifestyle"],
+  "icons": [
+    {
+      "src": "icons/icon-72.png",
+      "sizes": "72x72",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-96.png",
+      "sizes": "96x96",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-128.png",
+      "sizes": "128x128",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-144.png",
+      "sizes": "144x144",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-152.png",
+      "sizes": "152x152",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-384.png",
+      "sizes": "384x384",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "الورد اليومي",
+      "short_name": "الورد",
+      "description": "سجل قراءة وردك اليومي",
+      "url": "/werdy/?action=daily",
+      "icons": [
+        {
+          "src": "icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "أجزائي",
+      "short_name": "أجزائي",
+      "description": "عرض الأجزاء المقروءة",
+      "url": "/werdy/?action=myjuz",
+      "icons": [
+        {
+          "src": "icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    },
+    {
+      "name": "الإنجازات",
+      "short_name": "إنجازات",
+      "description": "عرض إنجازاتك",
+      "url": "/werdy/?action=achievements",
+      "icons": [
+        {
+          "src": "icons/icon-96.png",
+          "sizes": "96x96"
+        }
+      ]
+    }
+  ],
+  "share_target": {
+    "action": "/werdy/?share",
+    "method": "GET",
+    "params": {
+      "title": "title",
+      "text": "text"
+    }
+  },
+  "related_applications": [
+    {
+      "platform": "play",
+      "url": "https://play.google.com/store/apps/details?id=com.khatma.app",
+      "id": "com.khatma.app"
+    }
+  ],
+  "prefer_related_applications": false
+}
